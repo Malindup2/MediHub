@@ -1,0 +1,10 @@
+# Visual Studio and Visual Studio Code folders
+.vs/
+.vscode/
+
+# .NET build outputs
+[Bb]in/
+[Oo]bj/
+
+# Node.js dependencies
+frontend/node_modules/
