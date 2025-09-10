@@ -7,4 +7,5 @@ public class Doctor
     public string Specialization { get; set; } = string.Empty;
     public string LicenseNumber { get; set; } = string.Empty;
     public int ExperienceYears { get; set; }
+    public bool IsApproved { get; set; } = false; 
 }

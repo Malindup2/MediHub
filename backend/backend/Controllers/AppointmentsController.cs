@@ -67,7 +67,7 @@ public class AppointmentsController : ControllerBase
         return CreatedAtAction(nameof(GetAppointment), new { id = appointment.Id }, appointment);
     }
 
-    // PUT: api/appointments/5
+    // PUT: api/appointments/
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAppointment(int id, [FromBody] Appointment appointment)
     {

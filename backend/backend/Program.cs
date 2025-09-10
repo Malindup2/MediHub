@@ -58,6 +58,7 @@ builder.Services.AddCors(options =>
 // Register services
 builder.Services.AddScoped<backend.Services.Interfaces.IUserService, backend.Services.Implementations.UserService>();
 builder.Services.AddScoped<backend.Services.Implementations.JwtTokenService>();
+builder.Services.AddScoped<backend.Services.Interfaces.IUserService, backend.Services.Implementations.UserService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -93,6 +94,13 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Seed roles
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    await SeedRoles(roleManager);
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -112,3 +120,17 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Method to seed roles
+static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
+{
+    var roles = new[] { "Patient", "Doctor", "Staff", "Admin" };
+    
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+}

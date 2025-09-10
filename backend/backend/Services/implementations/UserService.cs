@@ -78,13 +78,17 @@ public class UserService : IUserService
             UserId = user.Id,
             Specialization = dto.Specialization,
             LicenseNumber = dto.LicenseNumber,
-            ExperienceYears = dto.ExperienceYears
+            ExperienceYears = dto.ExperienceYears,
+            IsApproved = false
         };
 
         _dbContext.Doctors.Add(doctor);
         await _dbContext.SaveChangesAsync();
 
-        return "Doctor registered successfully.";
+        return "Doctor application submitted for approval. Please wait for activation by staff.";
+
+
+
     }
 
     public async Task<string> RegisterStaffAsync(RegisterStaff dto)
