@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using backend.Data;
 using backend.Models;
@@ -54,9 +55,41 @@ builder.Services.AddCors(options =>
         });
 });
 
+// Register services
+builder.Services.AddScoped<backend.Services.Interfaces.IUserService, backend.Services.Implementations.UserService>();
+builder.Services.AddScoped<backend.Services.Implementations.JwtTokenService>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "MediHub API", Version = "v1" });
+    
+    // Add JWT Bearer token support to Swagger
+    c.AddSecurityDefinition("Bearer", new()
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    
+    c.AddSecurityRequirement(new()
+    {
+        {
+            new()
+            {
+                Reference = new()
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 
 var app = builder.Build();
 
