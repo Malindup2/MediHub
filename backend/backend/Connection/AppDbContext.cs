@@ -15,13 +15,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Doctor> Doctors { get; set; } = null!;
     public DbSet<Staff> Staff { get; set; } = null!;
     public DbSet<Patient> Patients { get; set; } = null!;
-
+    public DbSet<MedicalRecord> MedicalRecords { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        
         base.OnModelCreating(builder);
 
+        // Rename Identity tables
         builder.Entity<ApplicationUser>().ToTable("Users");
         builder.Entity<IdentityRole>().ToTable("Roles");
         builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
@@ -30,11 +30,72 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
         builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
 
-        //table mappings
-        builder.Entity<Doctor>().ToTable("Doctors");
-        builder.Entity<Staff>().ToTable("Staffs");
-        builder.Entity<Patient>().ToTable("Patients");
-        builder.Entity<Appointment>().ToTable("Appointments");
+        // Configure entity relationships
+        
+        // Doctor relationships
+        builder.Entity<Doctor>()
+            .HasOne(d => d.User)
+            .WithOne()
+            .HasForeignKey<Doctor>(d => d.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
+        // Patient relationships
+        builder.Entity<Patient>()
+            .HasOne(p => p.User)
+            .WithOne()
+            .HasForeignKey<Patient>(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Staff relationships
+        builder.Entity<Staff>()
+            .HasOne(s => s.User)
+            .WithOne()
+            .HasForeignKey<Staff>(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Appointment relationships
+        builder.Entity<Appointment>()
+            .HasOne(a => a.Patient)
+            .WithMany(p => p.Appointments)
+            .HasForeignKey(a => a.PatientId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Appointment>()
+            .HasOne(a => a.Doctor)
+            .WithMany(d => d.Appointments)
+            .HasForeignKey(a => a.DoctorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // MedicalRecord relationships
+        builder.Entity<MedicalRecord>()
+            .HasOne(mr => mr.Patient)
+            .WithMany(p => p.MedicalRecords)
+            .HasForeignKey(mr => mr.PatientId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<MedicalRecord>()
+            .HasOne(mr => mr.Doctor)
+            .WithMany()
+            .HasForeignKey(mr => mr.DoctorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<MedicalRecord>()
+            .HasOne(mr => mr.Appointment)
+            .WithMany()
+            .HasForeignKey(mr => mr.AppointmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Configure decimal precision
+        builder.Entity<Doctor>()
+            .Property(d => d.ConsultationFee)
+            .HasPrecision(10, 2);
+
+        builder.Entity<Staff>()
+            .Property(s => s.Salary)
+            .HasPrecision(10, 2);
+
+        builder.Entity<Appointment>()
+            .Property(a => a.Fee)
+            .HasPrecision(10, 2);
     }
 }

@@ -133,7 +133,7 @@ public class UserService : IUserService
         if (!result)
             throw new Exception("Invalid email or password.");
 
-        var token = _jwtTokenService.GenerateToken(user);
+        var token = await _jwtTokenService.GenerateToken(user);
         return token;
     }
 }

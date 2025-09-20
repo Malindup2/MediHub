@@ -6,24 +6,32 @@ public class Appointment
 {
     public int Id { get; set; }
     
-    [Required]
-    [StringLength(100)]
-    public string PatientName { get; set; } = string.Empty;
-    
-    [Required]
-    [StringLength(100)]
-    public string DoctorName { get; set; } = string.Empty;
+    // Foreign Keys
+    public int PatientId { get; set; }
+    public int DoctorId { get; set; }
     
     [Required]
     public DateTime AppointmentDate { get; set; }
+    
+    public DateTime? EndTime { get; set; }
     
     [StringLength(500)]
     public string Description { get; set; } = string.Empty;
     
     [StringLength(50)]
-    public string Status { get; set; } = "Scheduled";
+    public string Status { get; set; } = "Scheduled"; // Scheduled, Confirmed, Completed, Cancelled
     
-    // Optional: Keep these for future relations
-    public string? PatientId { get; set; }
-    public string? DoctorId { get; set; }
+    [StringLength(1000)]
+    public string? Notes { get; set; }
+    
+    public decimal? Fee { get; set; }
+    
+    public bool IsPaid { get; set; } = false;
+    
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
+    
+    // Navigation properties
+    public Patient Patient { get; set; } = null!;
+    public Doctor Doctor { get; set; } = null!;
 }

@@ -24,8 +24,18 @@ public class AppointmentsController : ControllerBase
     public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointments()
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        // Find the user's patient or doctor record
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
+        
         var appointments = await _context.Appointments
-            .Where(a => a.PatientId == userId || a.DoctorId == userId)
+            .Include(a => a.Patient)
+            .ThenInclude(p => p.User)
+            .Include(a => a.Doctor)
+            .ThenInclude(d => d.User)
+            .Where(a => (patient != null && a.PatientId == patient.Id) || 
+                       (doctor != null && a.DoctorId == doctor.Id))
             .ToListAsync();
         
         return Ok(appointments);
@@ -36,8 +46,17 @@ public class AppointmentsController : ControllerBase
     public async Task<ActionResult<Appointment>> GetAppointment(int id)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
+        
         var appointment = await _context.Appointments
-            .Where(a => a.Id == id && (a.PatientId == userId || a.DoctorId == userId))
+            .Include(a => a.Patient)
+            .ThenInclude(p => p.User)
+            .Include(a => a.Doctor)
+            .ThenInclude(d => d.User)
+            .Where(a => a.Id == id && 
+                       ((patient != null && a.PatientId == patient.Id) || 
+                        (doctor != null && a.DoctorId == doctor.Id)))
             .FirstOrDefaultAsync();
 
         if (appointment == null)
@@ -50,7 +69,7 @@ public class AppointmentsController : ControllerBase
 
     // POST: api/appointments
     [HttpPost]
-    public async Task<ActionResult<Appointment>> CreateAppointment([FromBody] Appointment appointment)
+    public async Task<ActionResult<Appointment>> CreateAppointment([FromBody] CreateAppointmentDto dto)
     {
         if (!ModelState.IsValid)
         {
@@ -58,32 +77,59 @@ public class AppointmentsController : ControllerBase
         }
 
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        appointment.PatientId = userId!; // Set the current user as the patient
-        appointment.Status = "Scheduled";
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
+        
+        if (patient == null)
+        {
+            return BadRequest(new { message = "Only patients can create appointments" });
+        }
+
+        var appointment = new Appointment
+        {
+            PatientId = patient.Id,
+            DoctorId = dto.DoctorId,
+            AppointmentDate = dto.AppointmentDate,
+            Description = dto.Description,
+            Status = "Scheduled"
+        };
 
         _context.Appointments.Add(appointment);
         await _context.SaveChangesAsync();
 
+        // Include navigation properties in response
+        await _context.Entry(appointment)
+            .Reference(a => a.Patient)
+            .LoadAsync();
+        await _context.Entry(appointment.Patient)
+            .Reference(p => p.User)
+            .LoadAsync();
+        await _context.Entry(appointment)
+            .Reference(a => a.Doctor)
+            .LoadAsync();
+        await _context.Entry(appointment.Doctor)
+            .Reference(d => d.User)
+            .LoadAsync();
+
         return CreatedAtAction(nameof(GetAppointment), new { id = appointment.Id }, appointment);
     }
 
-    // PUT: api/appointments/
+    // PUT: api/appointments/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateAppointment(int id, [FromBody] Appointment appointment)
+    public async Task<IActionResult> UpdateAppointment(int id, [FromBody] UpdateAppointmentDto dto)
     {
-        if (id != appointment.Id)
-        {
-            return BadRequest(new { message = "ID mismatch" });
-        }
-
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
+
         var existingAppointment = await _context.Appointments
-            .Where(a => a.Id == id && (a.PatientId == userId || a.DoctorId == userId))
+            .Where(a => a.Id == id && 
+                       ((patient != null && a.PatientId == patient.Id) || 
+                        (doctor != null && a.DoctorId == doctor.Id)))
             .FirstOrDefaultAsync();
 
         if (existingAppointment == null)
@@ -91,9 +137,10 @@ public class AppointmentsController : ControllerBase
             return NotFound(new { message = $"Appointment with ID {id} not found" });
         }
 
-        existingAppointment.AppointmentDate = appointment.AppointmentDate;
-        existingAppointment.Description = appointment.Description;
-        existingAppointment.Status = appointment.Status;
+        existingAppointment.AppointmentDate = dto.AppointmentDate;
+        existingAppointment.Description = dto.Description;
+        existingAppointment.Status = dto.Status;
+        existingAppointment.UpdatedAt = DateTime.UtcNow;
 
         try
         {
@@ -119,8 +166,13 @@ public class AppointmentsController : ControllerBase
     public async Task<IActionResult> DeleteAppointment(int id)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
+        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
+
         var appointment = await _context.Appointments
-            .Where(a => a.Id == id && (a.PatientId == userId || a.DoctorId == userId))
+            .Where(a => a.Id == id && 
+                       ((patient != null && a.PatientId == patient.Id) || 
+                        (doctor != null && a.DoctorId == doctor.Id)))
             .FirstOrDefaultAsync();
 
         if (appointment == null)
@@ -138,4 +190,19 @@ public class AppointmentsController : ControllerBase
     {
         return _context.Appointments.Any(e => e.Id == id);
     }
+}
+
+// DTOs for appointments
+public class CreateAppointmentDto
+{
+    public int DoctorId { get; set; }
+    public DateTime AppointmentDate { get; set; }
+    public string Description { get; set; } = string.Empty;
+}
+
+public class UpdateAppointmentDto
+{
+    public DateTime AppointmentDate { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 }

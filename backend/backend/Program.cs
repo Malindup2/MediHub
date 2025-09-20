@@ -58,7 +58,6 @@ builder.Services.AddCors(options =>
 // Register services
 builder.Services.AddScoped<backend.Services.Interfaces.IUserService, backend.Services.Implementations.UserService>();
 builder.Services.AddScoped<backend.Services.Implementations.JwtTokenService>();
-builder.Services.AddScoped<backend.Services.Interfaces.IUserService, backend.Services.Implementations.UserService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
