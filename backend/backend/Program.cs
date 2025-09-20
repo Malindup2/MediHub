@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using backend.Data;
 using backend.Models;
+using backend.Middleware;
 
 
 
@@ -58,6 +59,9 @@ builder.Services.AddCors(options =>
 // Register services
 builder.Services.AddScoped<backend.Services.Interfaces.IUserService, backend.Services.Implementations.UserService>();
 builder.Services.AddScoped<backend.Services.Implementations.JwtTokenService>();
+builder.Services.AddScoped<backend.Services.Interfaces.IAppointmentService, backend.Services.Implementations.AppointmentService>();
+builder.Services.AddScoped<backend.Services.Interfaces.IDoctorService, backend.Services.Implementations.DoctorService>();
+builder.Services.AddScoped<backend.Services.Interfaces.IPatientService, backend.Services.Implementations.PatientService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -106,6 +110,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Add global exception handling
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
